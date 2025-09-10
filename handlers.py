@@ -1,4 +1,3 @@
-# handlers.py
 import logging
 from typing import Dict, Any
 import os
@@ -111,8 +110,8 @@ class RegistrationStates:
 class PriceEditStates:
     waiting_for_price: str = "waiting_for_price"
 
-# --- Основные обработчики ---
 
+# --- Основные обработчики ---
 @dp.message(Command("start"))
 async def cmd_start(message: Message, state: FSMContext) -> None:
     user = message.from_user
@@ -198,7 +197,7 @@ async def process_phone(message: Message, state: FSMContext) -> None:
         user_id=message.from_user.id,
         full_name=data['full_name'],
         age=data['age'],
-        role=data['role'],  # ✅ Убедитесь, что тут правильная роль
+        role=data['role'],
         phone=phone
     )
 
@@ -206,7 +205,7 @@ async def process_phone(message: Message, state: FSMContext) -> None:
         f"🎉 <b>Регистрация завершена!</b>\n\n"
         f"👤 <b>ФИО:</b> {data['full_name']}\n"
         f"🎂 <b>Возраст:</b> {data['age']}\n"
-        f"🆔 <b>Роль:</b> {data['role']}\n"  # ✅ Показываем правильную роль
+        f"🆔 <b>Роль:</b> {data['role']}\n"
         f"📱 <b>Телефон:</b> {phone}\n\n"
         "Теперь вы можете записаться на тренировку."
     )
@@ -221,7 +220,7 @@ async def process_phone(message: Message, state: FSMContext) -> None:
 @dp.callback_query(F.data == "show_profile")
 async def show_profile(callback: CallbackQuery, state: FSMContext) -> None:
     role = await get_user_role(callback.from_user.id)
-    logger.info(f"Показываем профиль. Роль: {role}")  # ✅ Лог
+    logger.info(f"Показываем профиль. Роль: {role}")
 
     if not role:
         await callback.message.edit_text(
@@ -249,7 +248,7 @@ async def show_profile(callback: CallbackQuery, state: FSMContext) -> None:
         f"📌 <b>ФИО:</b> {row['full_name']}\n"
         f"🎂 <b>Возраст:</b> {row['age']}\n"
         f"📱 <b>Телефон:</b> {phone}\n"
-        f"🎯 <b>Роль:</b> {role}\n\n"  # ✅ Правильная роль
+        f"🎯 <b>Роль:</b> {role}\n\n"
         "Вы зарегистрированы в школе плавания <b>mariaswimpro</b>!"
     )
 
@@ -490,6 +489,8 @@ async def finalize_registration(callback: CallbackQuery, state: FSMContext):
     await callback.message.edit_text(success_text, reply_markup=markup, parse_mode="HTML")
     await callback.answer()
     await state.clear()
+
+
 
 # --- Админ-панель ---
 @dp.callback_query(F.data == "admin_stats")
@@ -803,7 +804,7 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext) -> None:
 # --- Админ: кто записался ---
 @dp.callback_query(F.data == "admin_registrations")
 async def show_registrations(callback: CallbackQuery, state: FSMContext) -> None:
-    if callback.from_user.id != ADMIN_IDS:
+    if callback.from_user.id not in ADMIN_IDS:
         await callback.answer("❌ У вас нет доступа.")
         return
 

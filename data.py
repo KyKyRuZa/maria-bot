@@ -1,4 +1,3 @@
-# data.py
 from database import load_prices
 
 WELCOME_MESSAGE = (
@@ -84,7 +83,6 @@ COACHES_TEXT = (
     
 )
 
-
 async def format_pricelist_for_adults() -> str:
     rows = await load_prices()
     prices = [r for r in rows if r['category'] == 'adult']
@@ -147,7 +145,6 @@ async def format_pricelist_for_adults() -> str:
 
     text += "📞 Запись и консультация: +7(917)-855-53-88"
     return text
-
 
 async def format_pricelist_for_children() -> str:
     rows = await load_prices()

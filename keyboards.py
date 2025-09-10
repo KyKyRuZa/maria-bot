@@ -1,6 +1,4 @@
-# keyboards.py
 from aiogram.utils.keyboard import InlineKeyboardBuilder
-
 
 def get_main_keyboard(is_registered: bool):
     builder = InlineKeyboardBuilder()
