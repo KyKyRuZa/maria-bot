@@ -57,8 +57,7 @@ from database import (
 
 logger = logging.getLogger(__name__)
 
-# 🔐 Укажите ваш Telegram ID
-ADMIN_ID = int(os.getenv("ADMIN_ID")) # 🔥 Замените на ваш ID!
+ADMIN_IDS = [int(id_str.strip()) for id_str in os.getenv("ADMIN_IDS").split(",")]
 
 # --- Словари перевода ---
 SERVICE_TYPE_RU: Dict[str, str] = {
