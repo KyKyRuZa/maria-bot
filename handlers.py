@@ -14,7 +14,6 @@ from aiogram.types import (
 from aiogram.utils.keyboard import InlineKeyboardBuilder
 from aiogram.fsm.context import FSMContext
 
-load_dotenv()
 
 # --- Импорты из проекта ---
 from config import dp
@@ -54,10 +53,13 @@ from database import (
     create_pool,
     save_registration
 )
+load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-ADMIN_IDS = [int(id_str.strip()) for id_str in os.getenv("ADMIN_IDS").split(",")]
+# 🔐 Укажите ваш Telegram ID
+admin_ids_str = os.getenv("ADMIN_IDS", "1030970872")
+ADMIN_IDS = [int(id_str.strip()) for id_str in admin_ids_str.split(",") if id_str.strip().isdigit()]
 
 # --- Словари перевода ---
 SERVICE_TYPE_RU: Dict[str, str] = {
@@ -134,7 +136,7 @@ async def cmd_start(message: Message, state: FSMContext) -> None:
 
 @dp.message(Command("admin"))
 async def admin_panel(message: Message) -> None:
-    if message.from_user.id != ADMIN_ID:
+    if message.from_user.id not in ADMIN_IDS:
         await message.answer("❌ У вас нет доступа к админ-панели.")
         return
     await message.answer("🔐 Добро пожаловать в админ-панель!", reply_markup=get_admin_keyboard())
@@ -801,7 +803,7 @@ async def back_to_main(callback: CallbackQuery, state: FSMContext) -> None:
 # --- Админ: кто записался ---
 @dp.callback_query(F.data == "admin_registrations")
 async def show_registrations(callback: CallbackQuery, state: FSMContext) -> None:
-    if callback.from_user.id != ADMIN_ID:
+    if callback.from_user.id != ADMIN_IDS:
         await callback.answer("❌ У вас нет доступа.")
         return
 
