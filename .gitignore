@@ -60,7 +60,6 @@ bot.log
 *.db
 *.sqlite
 *.sqlite3
-database/
 
 # Redis
 dump.rdb
