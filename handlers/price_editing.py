@@ -1,5 +1,5 @@
 from aiogram import F
-from aiogram.types import CallbackQuery, Message
+from aiogram.types import CallbackQuery, Message, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from config import dp
@@ -21,6 +21,7 @@ async def show_prices_to_edit(callback: CallbackQuery):
     category_name = CATEGORY_RU[category_key]
     prices = await load_prices()
     prices = [p for p in prices if p['category'] == category_key]
+    
     if not prices:
         text = f"📭 Нет цен для <b>{category_name}</b>."
     else:
@@ -44,6 +45,8 @@ async def show_prices_to_edit(callback: CallbackQuery):
                 word = "тренировка" if count == 1 else "тренировки" if count in (2,3,4) else "тренировок"
                 text += f"  • {count} {word}{duration} — <b>{p['price']} ₽</b>\n"
             text += "\n"
+    
+    # Создаем кнопки правильно
     buttons = []
     unique_buttons = set()
     for p in prices:
@@ -56,14 +59,18 @@ async def show_prices_to_edit(callback: CallbackQuery):
             duration_text = f" ({p['duration']})" if p['duration'] else ""
             count = p['session_count']
             word = "тренировка" if count == 1 else "тренировки" if count in (2,3,4) else "тренировок"
+            
+            # Используем InlineKeyboardButton вместо CallbackQuery.inline_keyboard
             buttons.append([
-                CallbackQuery.inline_keyboard[0][0].__class__(
+                InlineKeyboardButton(
                     text=f"✏️ {service_ru}{duration_text} - {count} {word}",
                     callback_data=callback_data
                 )
             ])
-    from aiogram.types import InlineKeyboardMarkup
-    buttons.append([CallbackQuery.inline_keyboard[0][0].__class__(text="🔙 Назад", callback_data="admin_back")])
+    
+    # Добавляем кнопку "Назад"
+    buttons.append([InlineKeyboardButton(text="🔙 Назад", callback_data="admin_back")])
+    
     keyboard = InlineKeyboardMarkup(inline_keyboard=buttons)
     await callback.message.edit_text(text, reply_markup=keyboard, parse_mode="HTML")
     await callback.answer()
