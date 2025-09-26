@@ -8,6 +8,7 @@ from database.users import get_user_role
 from database.prices import load_prices
 from database.registrations import save_registration
 from database.base import get_pool
+from notifications import notify_admins_new_registration
 from keyboards.training_selection import get_adult_pool_keyboard, get_child_pool_keyboard, get_adult_schedule_keyboard, get_child_schedule_keyboard
 
 @dp.callback_query(F.data == "register_training")
@@ -112,7 +113,6 @@ async def finalize_registration(callback: CallbackQuery, state: FSMContext):
     time_text = data['selected_time_text']
     user_id = callback.from_user.id
     role = data.get('role') or await get_user_role(user_id)
-
     pool = await get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT full_name FROM users WHERE user_id = $1", user_id)
@@ -127,7 +127,14 @@ async def finalize_registration(callback: CallbackQuery, state: FSMContext):
     full_name = row['full_name']
     session_count = price_row['session_count']
     price = price_row['price']
-    await save_registration(user_id, full_name, role, time_text, session_count, price)
+
+    await save_registration(user_id, full_name, role, time_text, session_count, price )
+
+    registration_data = {
+        'full_name': full_name,
+        'training_time': time_text,
+    }
+    await notify_admins_new_registration(registration_data)
 
     word = "тренировка" if session_count == 1 else "тренировки" if session_count in (2,3,4) else "тренировок"
     price_text = f"{price:,} ₽".replace(",", " ")
