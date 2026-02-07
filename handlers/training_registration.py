@@ -114,7 +114,7 @@ async def finalize_registration(callback: CallbackQuery, state: FSMContext):
     time_text = data['selected_time_text']
     user_id = callback.from_user.id
     role = data.get('role') or await get_user_role(user_id)
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT full_name FROM users WHERE user_id = $1", user_id)
         price_row = await conn.fetchrow("SELECT * FROM prices WHERE id = $1", price_id)
@@ -173,7 +173,7 @@ async def show_my_registrations(callback: CallbackQuery):
 
     registration = await get_user_registration(user_id)
     if not registration:
-        text = "ostringstream <b>Вы пока никуда не записаны.</b>\nНажмите «Записаться», чтобы выбрать время и занятие."
+        text = "<b>Вы пока никуда не записаны.</b>\nНажмите «Записаться», чтобы выбрать время и занятие."
     else:
         time_text = registration['training_time']
         session_count = registration['session_count']

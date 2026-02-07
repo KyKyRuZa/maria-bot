@@ -16,7 +16,7 @@ async def show_profile(callback: CallbackQuery, state: FSMContext):
         await callback.answer()
         return
 
-    pool = await get_pool()
+    pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("SELECT full_name, age, phone FROM users WHERE user_id = $1", user_id)
 
