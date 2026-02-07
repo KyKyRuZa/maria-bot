@@ -4,35 +4,38 @@ import sys
 from config import dp, bot
 import handlers
 from database.base import init_db, close_db
+from logging_config import setup_logging
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(name)s - %(funcName)s:%(lineno)d - %(message)s",
-    handlers=[
-        logging.StreamHandler(sys.stdout),
-        logging.FileHandler("bot.log", encoding="utf-8")
-    ]
-)
-
-logging.getLogger("aiogram").setLevel(logging.WARNING)
-logging.getLogger("aiohttp").setLevel(logging.WARNING)
+setup_logging()
 
 logger = logging.getLogger(__name__)
 
 async def main():
-    logger.info("🚀 Бот запускается...")
+    logger.info("Запуск бота начинается...")
+    
+    logger.info(f"Python версия: {sys.version}")
+    
     try:
-        await init_db() 
+        logger.info("Инициализация базы данных...")
+        await init_db()
+        logger.info("База данных инициализирована успешно")
+        
+        logger.info("Начало опроса сообщений...")
         await dp.start_polling(bot)
+        logger.info(" polling завершен")
+        
     except Exception as e:
-        logger.exception("💥 Критическая ошибка: %s", e)
+        logger.critical("Критическая ошибка при запуске бота: %s", str(e), exc_info=True)
         raise
     finally:
+        logger.info("Закрытие соединений с базой данных...")
         await close_db()
-        logger.info("🔌 Ресурсы очищены")
+        logger.info("Ресурсы очищены, бот остановлен")
 
 if __name__ == "__main__":
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
-        logger.info("🛑 Бот остановлен вручную.")
+        logger.info("🛑 Бот принудительно остановлен пользователем")
+    except Exception as e:
+        logger.critical("💥 Необработанная ошибка в главном потоке: %s", str(e), exc_info=True)
