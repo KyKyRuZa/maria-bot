@@ -6,6 +6,7 @@ from database.users import get_user_stats, get_all_users
 from database.registrations import get_all_registrations, get_financial_report, delete_registration
 from aiogram.filters import Command
 import logging
+from utils.sanitization import sanitize_html
 
 logger = logging.getLogger(__name__)
 
@@ -47,31 +48,31 @@ async def show_all_users(callback: CallbackQuery):
         await callback.answer()
         return
 
-    # Устанавливаем текущую страницу для пользователя
     user_id = callback.from_user.id
     current_page = PAGINATION_STATE.get(user_id, 1)
     per_page = 5
-    total_pages = (len(users) + per_page - 1) // per_page  # ceil division
+    total_pages = (len(users) + per_page - 1) // per_page  
 
-    # Ограничиваем страницу в допустимых пределах
     current_page = max(1, min(current_page, total_pages))
     PAGINATION_STATE[user_id] = current_page
 
-    # Получаем данные для текущей страницы
     start_idx = (current_page - 1) * per_page
     end_idx = start_idx + per_page
     page_users = users[start_idx:end_idx]
 
-    # Формируем текст
     text = f"📋 <b>Все пользователи (Страница {current_page}/{total_pages})</b>\n━━━━━━━━━━━━━━━━━━━━\n"
     for u in page_users:
+        sanitized_full_name = sanitize_html(u['full_name'])
         phone = u['phone'] or "не указан"
+        sanitized_phone = sanitize_html(phone)
+        sanitized_role = sanitize_html(u['role'])
+        
         text += (
-            f"👤 <b>{u['full_name']}</b>\n"
+            f"👤 <b>{sanitized_full_name}</b>\n"
             f"🔢 ID: <code>{u['user_id']}</code>\n"
             f"🎂 Возраст: {u['age']}\n"
-            f"👥 Роль: {u['role']}\n"
-            f"📱 Телефон: {phone}\n"
+            f"👥 Роль: {sanitized_role}\n"
+            f"📱 Телефон: {sanitized_phone}\n"
             f"📅 {u['registered_at'].strftime('%d.%m.%Y %H:%M')}\n\n"
         )
 
@@ -108,38 +109,39 @@ async def show_registrations(callback: CallbackQuery):
         await callback.answer()
         return
 
-    # Устанавливаем текущую страницу для пользователя
     user_id = callback.from_user.id
-    current_page = PAGINATION_STATE.get(f"reg_{user_id}", 1)  # Уникальный ключ для регистраций
-    per_page = 5  # Ограничение в 5 пользователей на страницу
-    total_pages = (len(registrations) + per_page - 1) // per_page  # ceil division
+    current_page = PAGINATION_STATE.get(f"reg_{user_id}", 1)
+    per_page = 5
+    total_pages = (len(registrations) + per_page - 1) // per_page
 
-    # Ограничиваем страницу в допустимых пределах
     current_page = max(1, min(current_page, total_pages))
     PAGINATION_STATE[f"reg_{user_id}"] = current_page
 
-    # Получаем данные для текущей страницы
     start_idx = (current_page - 1) * per_page
     end_idx = start_idx + per_page
     page_registrations = registrations[start_idx:end_idx]
 
-    # Формируем текст с информацией о странице
     text = f"👥 <b>Кто записался на тренировки (Страница {current_page}/{total_pages})</b>\n"
     text += "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n\n"
 
     builder = InlineKeyboardBuilder()
 
     for i, r in enumerate(page_registrations, start=start_idx + 1):
+        sanitized_full_name = sanitize_html(r['full_name'])
         phone = r['phone'] or "не указан"
+        sanitized_phone = sanitize_html(phone)
+        sanitized_role = sanitize_html(r['role'])
+        sanitized_training_time = sanitize_html(r['training_time'])
+        
         word = "тренировка" if r['session_count'] == 1 else "тренировки" if r['session_count'] in (2,3,4) else "тренировок"
         price_text = f"{r['price']:,} ₽".replace(",", " ")
 
         text += (
-            f"<b>{i}.</b> 👤 <b>{r['full_name']}</b>\n"
+            f"<b>{i}.</b> 👤 <b>{sanitized_full_name}</b>\n"
             f"   🔢 ID: <code>{r['user_id']}</code>\n"
-            f"   🎯 {r['role']}, {r['age']} лет\n"
-            f"   📞 {phone}\n"
-            f"   ⏰ {r['training_time']}\n"
+            f"   🎯 {sanitized_role}, {r['age']} лет\n"
+            f"   📞 {sanitized_phone}\n"
+            f"   ⏰ {sanitized_training_time}\n"
             f"   🎟 {r['session_count']} {word}\n"
             f"   💰 {price_text}\n"
             f"   📅 {r['registered_at'].strftime('%d.%m.%Y %H:%M')}\n\n"
@@ -149,29 +151,26 @@ async def show_registrations(callback: CallbackQuery):
             callback_data=f"delete_reg_{r['user_id']}"
         )
 
-    # Используем универсальную панель навигации
     from keyboards.admin import get_pagination_keyboard
     pagination_markup = get_pagination_keyboard(
         current_page=current_page, 
         total_pages=total_pages, 
         back_callback="admin_back",
-        page_prefix="admin_registrations_page_"  # Новый префикс для пагинации регистраций
+        page_prefix="admin_registrations_page_"
     )
     
     builder.adjust(1)
     
     final_builder = InlineKeyboardBuilder()
     
-    # Добавляем кнопки удаления
     for button in builder.buttons:
         final_builder.add(button)
     final_builder.adjust(1)
     
-    # Добавляем кнопки пагинации
     for row in pagination_markup.inline_keyboard:
         for button in row:
             final_builder.add(button)
-        final_builder.adjust(1)  # Каждая строка отдельно
+        final_builder.adjust(1)
 
     await callback.message.edit_text(text, reply_markup=final_builder.as_markup(), parse_mode="HTML")
     await callback.answer()
@@ -190,11 +189,17 @@ async def delete_registration_handler(callback: CallbackQuery):
         await callback.answer("❌ У вас нет доступа.")
         return
 
-    try:
-        user_id = int(callback.data.split("_", 2)[2])
-    except (ValueError, IndexError):
+    parts = callback.data.split("_", 2)
+    if len(parts) != 3 or parts[0] != "delete" or parts[1] != "reg":
         logger.error(f"❌ Неверный формат callback_data для удаления: {callback.data}")
-        await callback.answer("❌ Неверный ID.")
+        await callback.answer("❌ Неверный формат команды удаления.")
+        return
+
+    try:
+        user_id = int(parts[2])
+    except ValueError:
+        logger.error(f"❌ ID пользователя не является числом: {parts[2]}")
+        await callback.answer("❌ Неверный ID пользователя.")
         return
 
     success = await delete_registration(user_id)

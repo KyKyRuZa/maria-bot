@@ -1,8 +1,16 @@
 from .base import get_pool
+from utils.validation import validate_user_id, validate_full_name, validate_role, validate_training_time, validate_session_count, validate_price
 import logging
 logger = logging.getLogger(__name__)
 
 async def save_registration(user_id: int, full_name: str, role: str, training_time: str, session_count: int, price: int):
+    validated_user_id = validate_user_id(user_id)
+    validated_full_name = validate_full_name(full_name)
+    validated_role = validate_role(role)
+    validated_training_time = validate_training_time(training_time)
+    validated_session_count = validate_session_count(session_count)
+    validated_price = validate_price(price)
+    
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute('''
@@ -10,39 +18,46 @@ async def save_registration(user_id: int, full_name: str, role: str, training_ti
             VALUES ($1, $2, $3, $4, $5, $6)
             ON CONFLICT (user_id) DO UPDATE
             SET training_time = $4, session_count = $5, price = $6, registered_at = NOW()
-        ''', user_id, full_name, role, training_time, session_count, price)
+        ''', validated_user_id, validated_full_name, validated_role, validated_training_time, validated_session_count, validated_price)
     
     
 async def update_registration_role(user_id: int, new_role: str):
+    validated_user_id = validate_user_id(user_id)
+    validated_new_role = validate_role(new_role)
+    
     pool = get_pool()
     async with pool.acquire() as conn:
         await conn.execute(
             "UPDATE registrations SET role = $1 WHERE user_id = $2",
-            new_role, user_id
+            validated_new_role, validated_user_id
         )
     
     
 async def get_user_registration(user_id: int):
+    validated_user_id = validate_user_id(user_id)
+    
     pool = get_pool()
     async with pool.acquire() as conn:
         row = await conn.fetchrow("""
             SELECT full_name, role, training_time, session_count, price, registered_at
-            FROM registrations 
+            FROM registrations
             WHERE user_id = $1
-        """, user_id)
-    
+        """, validated_user_id)
+
     return row
 
 async def delete_registration(user_id: int) -> bool:
+    validated_user_id = validate_user_id(user_id)
+    
     pool = get_pool()
     async with pool.acquire() as conn:
-        result = await conn.execute("DELETE FROM registrations WHERE user_id = $1", user_id)
-    
+        result = await conn.execute("DELETE FROM registrations WHERE user_id = $1", validated_user_id)
+
     deleted = result.split()[-1] != "0"
     if deleted:
-        logger.info(f"🗑 Запись пользователя удалена: user_id={user_id}")
+        logger.info(f"🗑 Запись пользователя удалена: user_id={validated_user_id}")
     else:
-        logger.warning(f"🗑 Попытка удаления несуществующей записи: user_id={user_id}")
+        logger.warning(f"🗑 Попытка удаления несуществующей записи: user_id={validated_user_id}")
     return deleted
 
 async def get_all_registrations():

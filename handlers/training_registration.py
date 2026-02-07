@@ -10,6 +10,7 @@ from database.registrations import save_registration
 from database.base import get_pool
 from notifications import notify_admins_new_registration
 from keyboards.training_selection import get_adult_pool_keyboard, get_child_pool_keyboard, get_adult_schedule_keyboard, get_child_schedule_keyboard
+from utils.sanitization import sanitize_html
 
 @dp.callback_query(F.data == "register_training")
 async def choose_training(callback: CallbackQuery, state: FSMContext):
@@ -136,13 +137,17 @@ async def finalize_registration(callback: CallbackQuery, state: FSMContext):
     }
     await notify_admins_new_registration(registration_data)
 
+    sanitized_full_name = sanitize_html(full_name)
+    sanitized_role = sanitize_html(role)
+    sanitized_time_text = sanitize_html(time_text)
+
     word = "тренировка" if session_count == 1 else "тренировки" if session_count in (2,3,4) else "тренировок"
     price_text = f"{price:,} ₽".replace(",", " ")
     success_text = (
         "✅ <b>Вы успешно записаны!</b>\n"
-        f"👤 <b>ФИО:</b> {full_name}\n"
-        f"🎯 <b>Роль:</b> {role}\n"
-        f"⏰ <b>Время:</b> {time_text}\n"
+        f"👤 <b>ФИО:</b> {sanitized_full_name}\n"
+        f"🎯 <b>Роль:</b> {sanitized_role}\n"
+        f"⏰ <b>Время:</b> {sanitized_time_text}\n"
         f"🎟 <b>Абонемент:</b> {session_count} {word}\n"
         f"💰 <b>Цена:</b> {price_text}\n"
         "📞 При необходимости изменения — свяжитесь с администратором: +7 917 899 5088"
@@ -168,20 +173,25 @@ async def show_my_registrations(callback: CallbackQuery):
 
     registration = await get_user_registration(user_id)
     if not registration:
-        text = "📭 <b>Вы пока никуда не записаны.</b>\nНажмите «Записаться», чтобы выбрать время и занятие."
+        text = "ostringstream <b>Вы пока никуда не записаны.</b>\nНажмите «Записаться», чтобы выбрать время и занятие."
     else:
         time_text = registration['training_time']
         session_count = registration['session_count']
         price = registration['price']
         full_name = registration['full_name']
+        
+        sanitized_full_name = sanitize_html(full_name)
+        sanitized_current_role = sanitize_html(current_role)
+        sanitized_time_text = sanitize_html(time_text)
+        
         word = "тренировка" if session_count == 1 else "тренировки" if session_count in (2,3,4) else "тренировок"
         price_text = f"{price:,} ₽".replace(",", " ")
         text = (
             "📋 <b>Ваши записи</b>\n"
             "━━━━━━━━━━━━━━━━━━\n"
-            f"👤 <b>ФИО:</b> {full_name}\n"
-            f"🎯 <b>Роль:</b> {current_role}\n"
-            f"⏰ <b>Время:</b> {time_text}\n"
+            f"👤 <b>ФИО:</b> {sanitized_full_name}\n"
+            f"🎯 <b>Роль:</b> {sanitized_current_role}\n"
+            f"⏰ <b>Время:</b> {sanitized_time_text}\n"
             f"🎟 <b>Абонемент:</b> {session_count} {word}\n"
             f"💰 <b>Цена:</b> {price_text}\n"
             "Спасибо, что занимаетесь с нами! 🏊‍♂️"

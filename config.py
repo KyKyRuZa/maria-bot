@@ -6,7 +6,16 @@ import os
 load_dotenv()
 
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-ADMIN_IDS = [int(id_str.strip()) for id_str in os.getenv("ADMIN_IDS", "1030970872").split(",") if id_str.strip().isdigit()]
+if not BOT_TOKEN:
+    raise ValueError("Необходимо указать BOT_TOKEN в переменных окружения")
+
+ADMIN_IDS_RAW = os.getenv("ADMIN_IDS")
+if not ADMIN_IDS_RAW:
+    raise ValueError("Необходимо указать ADMIN_IDS в переменных окружения")
+
+ADMIN_IDS = [int(id_str.strip()) for id_str in ADMIN_IDS_RAW.split(",") if id_str.strip().isdigit()]
+if not ADMIN_IDS:
+    raise ValueError("ADMIN_IDS должен содержать хотя бы один числовой ID администратора")
 
 bot = Bot(token=BOT_TOKEN)
 storage = MemoryStorage()
